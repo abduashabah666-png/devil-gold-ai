@@ -8,6 +8,9 @@ import yfinance as yf
 
 from datetime import datetime, timezone
 
+from market_analysis import analyze_market
+from institutional_engine import analyze_institutional
+
 # ==========================================
 # DEVIL GOLD AI
 # Liquidity Engine + Institutional Analysis
@@ -312,62 +315,68 @@ def analyze_institutional(df):
 # ==========================================
 
 def build_report(df):
-    liquidity = analyze_liquidity(df)
+    
+def build_report(df):
+    liquidity = analyze_market(df)
     institutional = analyze_institutional(df)
 
-    latest = df.iloc[-1]
+    if liquidity["status"] != "OK":
+        return "DEVIL GOLD AI: Insufficient data for liquidity analysis."
 
-    price = float(latest["Close"])
-    timestamp = str(df.index[-1])
+    if institutional["status"] != "OK":
+        return "DEVIL GOLD AI: Insufficient data for institutional analysis."
 
-    same_direction = (
-        liquidity["direction"] == institutional["direction"]
-        and liquidity["direction"] != "NEUTRAL"
+    price = float(df["Close"].iloc[-1])
+
+    liquidity_signal = liquidity["assessment"]
+    institutional_direction = institutional["direction"]
+
+    agreement = (
+        (liquidity_signal == "BULLISH_CONFLUENCE"
+         and institutional_direction == "BULLISH")
+        or
+        (liquidity_signal == "BEARISH_CONFLUENCE"
+         and institutional_direction == "BEARISH")
     )
 
-    combined_score = min(
-        100,
-        liquidity["score"] + institutional["score"]
-    )
-
-    if same_direction and combined_score >= MIN_SCORE:
-        status = "CONFLUENCE FOUND"
-    elif liquidity["direction"] != "NEUTRAL":
-        status = "LIQUIDITY EVENT - WAIT FOR CONFIRMATION"
+    if agreement:
+        status = "BOTH ENGINES AGREE"
     else:
-        status = "WAIT - NO STRONG CONFLUENCE"
+        status = "WAIT - NO FULL AGREEMENT"
 
-    report = f"""
-🐋 {BOT_NAME}
+    observations = "\n".join(
+        "- " + item
+        for item in institutional["observations"]
+    )
+
+    return f"""
+🐋 DEVIL GOLD AI
 ━━━━━━━━━━━━━━━━━━
-📊 Symbol: {SYMBOL}
-🕒 Candle time: {timestamp}
-💰 Latest candle close: {price:.3f}
-
-🏦 INSTITUTIONAL ENGINE
-Direction: {institutional["direction"]}
-Score: {institutional["score"]}/40
-RSI: {institutional["rsi"]:.2f}
-EMA20: {institutional["ema20"]:.3f}
-EMA50: {institutional["ema50"]:.3f}
-ATR: {institutional["atr"]:.3f}
+Symbol: {SYMBOL}
+Latest candle close: {price:.3f}
 
 🐋 LIQUIDITY ENGINE
-Direction: {liquidity["direction"]}
-Score: {liquidity["score"]}/25
+Trend: {liquidity["trend"]}
+Pattern: {liquidity["liquidity"]}
+Assessment: {liquidity_signal}
 
-Combined heuristic score: {combined_score}/100
-Status: {status}
+🏦 INSTITUTIONAL-STYLE ENGINE
+Direction: {institutional_direction}
+Heuristic score: {institutional["score"]}/40
+RSI: {institutional["rsi"]:.2f}
+ATR: {institutional["atr"]:.3f}
 
-⚠️ Scores are rule-based, not probabilities
-of success or verified institutional activity.
-This is analysis only, not a trade instruction.
-Data source: Yahoo Finance
+🧠 COMBINED RESULT
+{status}
+
+Observations:
+{observations}
+
+⚠️ Analysis only. No trade execution.
+Scores are not probabilities of success.
+Yahoo data may differ from broker quotes.
 ━━━━━━━━━━━━━━━━━━
 """.strip()
-
-    return report
-
 
 # ==========================================
 # MAIN LOOP
