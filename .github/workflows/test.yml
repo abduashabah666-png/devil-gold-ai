@@ -26,5 +26,15 @@ jobs:
       - name: Check Python syntax
         run: python -m py_compile bot.py
 
-      - name: Test gold analysis
+            - name: Test gold analysis
         run: python bot.py
+
+      - name: Run historical backtest
+        run: python backtest.py
+      - name: Run historical backtest
+        run: python backtest.py
+
+      - name: Check backtest output
+        run: |
+          python backtest.py > backtest_report.txt
+          cat backtest_report.txt
