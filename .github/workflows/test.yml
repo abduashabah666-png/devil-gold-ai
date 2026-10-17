@@ -3,7 +3,8 @@ name: Test Devil Gold AI
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   test:
@@ -24,17 +25,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Check Python syntax
-        run: python -m py_compile bot.py
+        run: |
+          python -m py_compile bot.py
+          python -m py_compile backtest.py
 
-            - name: Test gold analysis
+      - name: Test gold analysis
         run: python bot.py
 
       - name: Run historical backtest
         run: python backtest.py
-      - name: Run historical backtest
-        run: python backtest.py
-
-      - name: Check backtest output
-        run: |
-          python backtest.py > backtest_report.txt
-          cat backtest_report.txt
